@@ -21,6 +21,4 @@ WORKDIR "/var/www/html/${PROJECT}"
 COPY "${PROJECT}/package*.json" \
      ./
 
-
-RUN npm install --global cross-env
 CMD [ "bash", "/var/www/html/dockerbuild/node-run.sh" ]

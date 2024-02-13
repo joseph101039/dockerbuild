@@ -8,13 +8,14 @@ ENV TZ=Asia/Taipei
 
 RUN apk add tzdata
 RUN apk add bash protoc
-#RUN apk add git
+RUN apk add git
 RUN apk add openssh
 
 WORKDIR "/go/src/${PROJECT}"
 
 # append nacos 設定覆蓋各專案的 conf/app.conf
 RUN mkdir -p conf
+
 COPY dockerbuild/nacos-overwrite-app-tb546.conf conf/nacos-overwrite-app-tb546.conf
 # proto do not have conf directory
 COPY "${PROJECT}/conf/" conf/

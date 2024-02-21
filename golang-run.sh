@@ -37,4 +37,6 @@ if [ "${GENERATE_PROTO}" = "1" ]; then
     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 fi
 
-go run .
+# gcc 編譯失敗: 需要 tag
+# https://github.com/confluentinc/confluent-kafka-go/issues/454
+go run -tags musl .

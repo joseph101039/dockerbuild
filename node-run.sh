@@ -5,6 +5,10 @@ if [[ "${REPLACE_FROM_BASE_URI}" != "" ]]; then
   sed -i "s#\"${REPLACE_FROM_BASE_URI}\"#\"${REPLACE_WITH_BASE_URI}\"#g" config/dev.env.js
 fi
 
+if [[ "${REPLACE_FROM_GATEWAY_CONFIG}" != "" ]]; then
+  sed -i "s#\"${REPLACE_FROM_GATEWAY_CONFIG}\"#\"${REPLACE_WITH_GATEWAY_CONFIG}\"#g" config/dev.env.js
+fi
+
 # only for cloud
 sed -i 's#npm run locales && ##' package.json
 

@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # 取代開發服網址成為本地網址
-
 if [[ "${REPLACE_FROM_BASE_URI}" != "" ]]; then
-  sed -i "s#\"${REPLACE_FROM_BASE_URI}\"#\"${REPLACE_WITH_BASE_URI}\"#g" config/dev.env.js
+  sed -i "s#${REPLACE_FROM_BASE_URI}#${REPLACE_WITH_BASE_URI}#g" config/dev.env.js
 fi
 
 if [[ "${REPLACE_FROM_GATEWAY_CONFIG}" != "" ]]; then
-  sed -i "s#\"${REPLACE_FROM_GATEWAY_CONFIG}\"#\"${REPLACE_WITH_GATEWAY_CONFIG}\"#g" config/dev.env.js
+  sed -i "s#${REPLACE_FROM_GATEWAY_CONFIG}#${REPLACE_WITH_GATEWAY_CONFIG}#g" config/dev.env.js
 fi
 
 # only for cloud
@@ -14,13 +13,10 @@ sed -i 's#npm run locales && ##' package.json
 
 if [[ "$IGNORE_SCRIPT" == "1" ]]; then
   printf "npm install with IGNORE_SCRIPT\n"
-#    cp -r node_modules_copy node_modules
-#    sleep 30
   git config --global url."https://github".insteadOf github:
   npm install --ignore-scripts
-  #npm install
 else
-  npm install
+  npm install -f
 fi;
 
 npm install --global cross-env

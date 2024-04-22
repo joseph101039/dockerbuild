@@ -13,6 +13,7 @@ RUN apk add bash
 RUN apk add gcc g++ make cmake
 RUN apk add gfortran libffi-dev openssl-dev libtool  # make tool
 RUN apk add git  # 此項不可以除 需要 pull repo
+RUN apk add curl  # 测试用途
 
 WORKDIR "/var/www/html/${PROJECT}"
 

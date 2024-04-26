@@ -22,6 +22,8 @@ RUN apk add --no-progress --no-cache \
 RUN apk add --no-cache cyrus-sasl-dev  # explicitly install SASL package
 
 
+WORKDIR /go/src/
+
 # container 啟動, volumes mount 後, 執行編譯
 CMD ["bash", "/go/src/dockerbuild/golang-run.sh"]
 

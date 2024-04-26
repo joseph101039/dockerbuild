@@ -1,7 +1,7 @@
 ARG NODE_VERSION=node:14-alpine
 
 FROM ${NODE_VERSION}
-ARG PROJECT=""
+#ARG PROJECT=""
 ENV TZ=Asia/Taipei
 
 RUN apk upgrade
@@ -15,11 +15,12 @@ RUN apk add gfortran libffi-dev openssl-dev libtool  # make tool
 RUN apk add git  # 此項不可以除 需要 pull repo
 RUN apk add curl  # 测试用途
 
-WORKDIR "/var/www/html/${PROJECT}"
+#WORKDIR "/var/www/html/${PROJECT}"
+WORKDIR "/var/www/html/"
 
 
 
-COPY "${PROJECT}/package*.json" \
-     ./
+#COPY "${PROJECT}/package*.json" \
+#     ./
 
 CMD [ "bash", "/var/www/html/dockerbuild/node-run.sh" ]

@@ -6,6 +6,7 @@ ENV PROJECT=""
 ENV PROFILE="dev"
 ENV TZ=Asia/Taipei
 
+
 RUN apt-get update -y
 RUN apt-get install -y tzdata bash git
 RUN apt-get install -y iputils-ping

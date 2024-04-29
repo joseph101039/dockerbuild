@@ -1,16 +1,5 @@
 #!/usr/bin/env bash
 
-npm install --global cross-env
-
-# only for game app
-if [[ "${BUILD_APP}" == "1" ]]; then
-  rm package-lock.json
-  rm -rf node_modules
-  npm install -f
-  npm run serve
-  exit 0
-fi
-
 # 取代開發服網址成為本地網址
 if [[ "${REPLACE_FROM_BASE_URI}" != "" ]]; then
   sed -i "s#${REPLACE_FROM_BASE_URI}#${REPLACE_WITH_BASE_URI}#g" config/dev.env.js

@@ -8,6 +8,8 @@ if [ -f "./routers/router.go" ]; then
   go get github.com/beego/bee/v2
   go install github.com/beego/bee/v2
   bee generate routers
+else
+  echo "No routers folder found."
 fi
 
 # gcc 編譯失敗: 需要 musl tag

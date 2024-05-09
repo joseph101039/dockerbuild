@@ -5,8 +5,13 @@ go mod tidy
 
 # 產生 beego routers
 if [ -f "./routers/router.go" ]; then
-  go get github.com/beego/bee/v2
-  go install github.com/beego/bee/v2
+  if ! command -v bee &> /dev/null
+    then
+        echo "bee could not be found, installing bee ..."
+        go get github.com/beego/bee/v2
+        go install github.com/beego/bee/v2
+    fi
+
   bee generate routers
 else
   echo "No routers folder found."

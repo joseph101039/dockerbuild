@@ -14,7 +14,7 @@ if [ -f "./routers/router.go" ]; then
 
   bee generate routers
 else
-  echo "No routers folder found."
+  echo "No routers folder is found."
 fi
 
 # gcc 編譯失敗: 需要 musl tag
@@ -32,11 +32,12 @@ if [ "${DEBUG_PORT}" != "" ] &&  [ "${DEBUG_MODE}" != "0" ]; then
   echo "Ready to compile with debug mode."
   dlv version
   echo "Listen debug port ':${DEBUG_PORT}' at container"
-  echo "building golang executable files ..."
+  echo "building golang debug executable files ..."
 
   # reference: https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-1-build-the-application
   go build -tags musl -gcflags="all=-N -l" -o $GOPATH/bin/golang-dlv .
   dlv --listen=":${DEBUG_PORT}" --headless=true --accept-multiclient --api-version=2 --continue --log exec $GOPATH/bin/golang-dlv
 else
+  echo "building golang executable files ..."
   go run -tags musl .
 fi

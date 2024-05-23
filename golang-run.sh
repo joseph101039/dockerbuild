@@ -1,6 +1,7 @@
 
 ping -c 1 "$RegCenterLocalIp"  # 確認是否連線成功
 
+echo "Running go mod tidy ..."
 go mod tidy
 
 # 產生 beego routers

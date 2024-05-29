@@ -37,6 +37,12 @@ if [ "${DEBUG_PORT}" != "" ] &&  [ "${DEBUG_MODE}" != "0" ]; then
 
   # reference: https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-1-build-the-application
   go build -tags musl -gcflags="all=-N -l" -o $GOPATH/bin/golang-dlv .
+
+  if $? != 0; then
+    echo "Compile error!"
+    exit 1
+  fi
+
   dlv --listen=":${DEBUG_PORT}" --headless=true --accept-multiclient --api-version=2 --continue --log exec $GOPATH/bin/golang-dlv
 else
   echo "building golang executable files ..."

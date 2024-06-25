@@ -16,7 +16,7 @@ grpc_ports=(
 )
 
 template_file="nginx.grpc.conf.template"
-output_dir="grpc-servers"
+output_dir="/etc/nginx/conf.d/"
 
 mkdir -p "$output_dir"
 for (( i=0; i < ${#input_files[@]}; i++ ))

@@ -4,6 +4,13 @@ ping -c 1 "$RegCenterLocalIp"  # 確認是否連線成功
 echo "Running go mod tidy ..."
 go mod tidy
 
+# GRPC healthcheck 檢查
+if ! command -v grpc-health-probe &> /dev/null; then
+    echo "grpc-health-probe could not be found, installing grpc-health-probe ..."
+    go get "github.com/grpc-ecosystem/grpc-health-probe@${GRPC_HEALTH_PROBE_VERSION}"
+    go install "github.com/grpc-ecosystem/grpc-health-probe@${GRPC_HEALTH_PROBE_VERSION}"
+fi
+
 # 產生 beego routers
 if [ -f "./routers/router.go" ]; then
   if ! command -v bee &> /dev/null
@@ -46,5 +53,5 @@ if [ "${DEBUG_PORT}" != "" ] &&  [ "${DEBUG_MODE}" != "0" ]; then
   dlv --listen=":${DEBUG_PORT}" --headless=true --accept-multiclient --api-version=2 --continue --log exec $GOPATH/bin/golang-dlv
 else
   echo "building golang executable files ..."
-  go run -tags musl .
+  go build -tags musl -o /go/bin/main && /go/bin/main  # go build faster than go run
 fi

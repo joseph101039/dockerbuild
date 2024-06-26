@@ -50,6 +50,11 @@ do
       export GRPC_DOMAIN=$host_name
       export GRPC_PORT=$grpc_port
       export PROXY_PORT=$port
+
+      if [[ "$GRPC_DOMAIN" == "micro-backend-api" ]]; then
+        continue
+      fi
+
       envsubst '${GRPC_DOMAIN},${GRPC_PORT},${PROXY_PORT}' < "$template_file" > "$output_dir/${GRPC_DOMAIN}.conf"
 
       # 輸出結果

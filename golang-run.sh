@@ -40,7 +40,7 @@ if [ "${DEBUG_PORT}" != "" ] &&  [ "${DEBUG_MODE}" != "0" ]; then
   echo "Ready to compile with debug mode."
   dlv version
   echo "Listen debug port ':${DEBUG_PORT}' at container"
-  echo "building golang debug executable files ..."
+  echo "building golang 'DEBUG' executable files ..."
 
   # reference: https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-1-build-the-application
   go build -tags musl -gcflags="all=-N -l" -o $GOPATH/bin/golang-dlv .

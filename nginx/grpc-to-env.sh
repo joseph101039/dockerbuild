@@ -18,7 +18,7 @@ do
   echo "# Processed from $input_file" >> $output_file
 
   # 讀取檔案的每一行
-  while IFS= read -r line
+  while IFS= read -r line || [[ -n "$line" ]]  # 或是讀取到最後一行, 沒有換行字元
   do
     # 解析 key 和 value
       key="${line%%=*}"
@@ -31,6 +31,8 @@ do
       port="${value##*:}"
 
       # 格式化輸出
+      echo "export ${env_key}=grpc-proxy:${port}" # todo remove
+
       echo "${env_key}=grpc-proxy:${port}" >> $output_file
   done < "$input_file"
 done

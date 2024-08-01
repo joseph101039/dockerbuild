@@ -25,7 +25,7 @@ do
   grpc_port=${grpc_ports[$i]}
 
   # 讀取檔案的每一行
-  while IFS= read -r line
+  while IFS= read -r line || [[ -n "$line" ]] # 或是讀取到最後一行, 沒有換行字元
   do
       # 移除前綴 grpc.host
       modified_line=${line#grpc.host.}

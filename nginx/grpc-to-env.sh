@@ -2,8 +2,8 @@
 
 # 指定檔案路徑
 input_files=(
-  "cloud/cloud-grpc.properties"
-  "cloud/game-grpc.properties"
+  "cloud-project/cloud-grpc.properties"
+  "cloud-project/game-grpc.properties"
   "game/cloud-grpc.properties"
   "game/game-grpc.properties"
 )

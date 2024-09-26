@@ -2,7 +2,7 @@
 ping -c 1 "$RegCenterLocalIp"  # 確認是否連線成功
 
 echo "Running go mod tidy ..."
-go mod tidy
+go mod tidy -x -v
 
 # GRPC healthcheck 檢查
 if ! command -v grpc-health-probe &> /dev/null; then
@@ -41,16 +41,18 @@ if [ "${DEBUG_PORT}" != "" ] &&  [ "${DEBUG_MODE}" != "0" ]; then
   dlv version
   echo "Listen debug port ':${DEBUG_PORT}' at container"
 
-  echo "Go clean cache ..."
-  go clean -cache
+#  echo "Go clean cache ..."
+#  go clean -cache
 
   echo "building golang 'DEBUG' executable files ..."
   # reference: https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-1-build-the-application
   go build -tags musl -gcflags="all=-N -l" -o $GOPATH/bin/golang-dlv .
 
-  if $? != 0; then
+  if [ "$?" != "0" ]; then
     echo "Compile error!"
     exit 1
+  else
+    echo "Compile success!"
   fi
 
   dlv --listen=":${DEBUG_PORT}" --headless=true --accept-multiclient --api-version=2 --continue --log exec $GOPATH/bin/golang-dlv

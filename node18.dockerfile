@@ -1,4 +1,4 @@
-ARG NODE_VERSION=node:18-alpine
+ARG NODE_VERSION=node:20-alpine
 
 FROM ${NODE_VERSION}
 ARG PROJECT=""
@@ -11,17 +11,18 @@ RUN apk add tzdata
 # See: https://github.com/Docker-Hub-frolvlad/docker-alpine-python3/pull/13
 ENV PYTHONUNBUFFERED=1
 
-# alpine3.15 is the last version compatible with python2
-RUN apk add --no-cache python2 # python2
+#RUN apk add --no-cache python2 # python2
 RUN apk add bash
 RUN apk add gcc g++ make cmake
 RUN apk add gfortran libffi-dev openssl-dev libtool  # make tool
 
 
 RUN apk add git
+RUN npm i -g pnpm
+
 WORKDIR "/var/www/html/${PROJECT}"
 
 COPY "${PROJECT}/package*.json" \
      ./
 
-CMD [ "bash", "/var/www/html/dockerbuild/node-run.sh" ]
+CMD [ "bash", "/var/www/html/dockerbuild/node18-run.sh" ]

@@ -17,8 +17,6 @@ RUN apk add curl  # 测试用途
 
 WORKDIR "/var/www/html/"
 
-#RUN npm install --global cross-env
-# TODO: npm list -g --depth 0, cross-env show diffrent version from package.json
 
 #COPY "${PROJECT}/package*.json" \
 #     ./

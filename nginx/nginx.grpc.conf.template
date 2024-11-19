@@ -20,7 +20,7 @@ server {
         default_type application/grpc;
         add_header grpc-status 14;
         add_header content-length 0;
-        return 204;
+        return 500;
     }
 }
 

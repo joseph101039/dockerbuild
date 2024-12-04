@@ -36,3 +36,7 @@ do
       echo "${env_key}=grpc-proxy:${port}" >> $output_file
   done < "$input_file"
 done
+
+# todo 加個特例, 之後移除
+echo "# Processed from special case"
+echo "GRPC_HOST_MICRO_BACKEND_API=grpc-proxy:20101" >> $output_file

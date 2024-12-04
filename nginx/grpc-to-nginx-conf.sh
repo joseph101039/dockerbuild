@@ -29,6 +29,8 @@ do
   do
       # 移除前綴 grpc.host
       modified_line=${line#grpc.host.}
+      # 移除前綴 grpc.
+      modified_line=${modified_line#grpc.}
       # 將 micro. 替換成 -
       modified_line=${modified_line//.micro./-}
       # 取得 IP 和端口

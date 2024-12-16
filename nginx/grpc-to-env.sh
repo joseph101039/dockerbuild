@@ -2,10 +2,10 @@
 
 # 指定檔案路徑
 input_files=(
-  "cloud-project/cloud-grpc.properties"
-  "cloud-project/game-grpc.properties"
-  "game/cloud-grpc.properties"
-  "game/game-grpc.properties"
+  "cloud-project/base-cloud/resources/cloud-grpc.properties"
+  "cloud-project/base-cloud/resources/game-grpc.properties"
+  "game-project/backend/base-game/resources/cloud-grpc.properties"
+  "game-project/backend/base-game/resources/game-grpc.properties"
 )
 
 output_file="grpc-server.env"
@@ -38,7 +38,8 @@ do
       echo "${env_key}=grpc-proxy:${port}" >> $output_file
 
       # 保存服務名和端口映射
-      service_key=${env_key//MICRO_/MICRO} # 將 MICRO_ 替換成 MICRO
+      service_key=${env_key//_/} # 將 _ 替換移除
+      service_key=${service_key//GRPC/GRPC_} # 將 GRPC 替換成 GRPC_
       servicePortMap["$service_key"]="$port"
   done < "$input_file"
 done
@@ -51,7 +52,7 @@ echo "GRPC_HOST_MICRO_BACKEND_API=grpc-proxy:20101" >> $output_file
 
 ##############  開始處理 game-project 專案連線設置 ################
 input_files=(
-  "game/game-project/frontend/game-website/resources/grpc.properties"
+  "game-project/frontend/game-website/resources/grpc.properties"
 )
 
 for (( i=0; i < ${#input_files[@]}; i++ ))

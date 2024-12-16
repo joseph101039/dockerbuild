@@ -2,10 +2,10 @@
 
 # 指定檔案路徑
 input_files=(
-  "cloud-project/cloud-grpc.properties"
-  "cloud-project/game-grpc.properties"
-  "game/cloud-grpc.properties"
-  "game/game-grpc.properties"
+  "cloud-project/base-cloud/resources/cloud-grpc.properties"
+  "cloud-project/base-cloud/resources/game-grpc.properties"
+  "game-project/backend/base-game/resources/cloud-grpc.properties"
+  "game-project/backend/base-game/resources/game-grpc.properties"
 )
 
 grpc_ports=(

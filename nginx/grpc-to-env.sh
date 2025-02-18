@@ -33,7 +33,7 @@ do
       port="${value##*:}"
 
       # 格式化輸出
-      echo "export ${env_key}=grpc-proxy:${port}" # todo remove
+      echo "export ${env_key}=grpc-proxy:${port}" # debug message
 
       echo "${env_key}=grpc-proxy:${port}" >> $output_file
 

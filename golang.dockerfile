@@ -18,8 +18,8 @@ RUN apk add --no-progress --no-cache \
     gcc \
     musl-dev
 
-RUN apk add --no-cache cyrus-sasl-dev  # explicitly install SASL package
-
+RUN apk add --no-cache cyrus-sasl-dev # explicitly install SASL package
+RUN apk add --no-cache socat # container inside port forwarding
 
 WORKDIR /go/src/
 

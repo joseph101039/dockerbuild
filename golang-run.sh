@@ -1,5 +1,81 @@
+#!/bin/bash
+function portForwarding() {
+  if ! command -v socat &> /dev/null; then
+    echo "socat could not be found, installing socat ..."
+    apk add socat
+  fi
+
+  declare -a input_files
+  # if /go/src/base-cloud/ is a folder
+  if [[ -d "/go/src/base-cloud/" ]]; then
+    echo "base-cloud folder is found."
+    input_files=(
+      "/go/src/base-cloud/module/.cloud-env"
+      "/go/src/base-cloud/resources/game-grpc.properties"
+    )
+  elif [[ -d "/go/src/backend/base-game" ]]; then
+    echo "base-game folder is found."
+    input_files=(
+      "/go/src/backend/base-game/module/.game-env"
+      "/go/src/backend/base-game/resources/cloud-grpc.properties"
+    )
+  else
+    echo "no related port forwarding folder is not found."
+  fi
+
+  for (( i=0; i < ${#input_files[@]}; i++ ))
+  do
+    input_file=${input_files[$i]}
+    echo "# Processed from $input_file"
+
+    # 讀取檔案的每一行
+    while IFS= read -r line || [[ -n "$line" ]]  # 或是讀取到最後一行, 沒有換行字元
+    do
+        # 解析 key 和 value
+        key="${line%%=*}"
+        value="${line##*=}"
+
+        # 如果 key 開頭是 GRPC_
+        if [[ "$key" == GRPC_* || "$key" == grpc.* ]]; then
+            # 將 key 替換 GRPC_ 為空, 替換 MICRO_ 為空, 替換 _ 為 . , 轉換成全小寫
+            service_key=$(echo "$key" | tr '[:upper:]' '[:lower:]' | sed 's/_/./g'  | sed 's/micro.//g' | sed 's/grpc.//g' | sed 's/\./-/g'  )
+            service_key="${service_key//backend-api/backendapi}"  # 特例處理
+
+            # 不能 forward 到自身, 不應佔用 port
+            if [[ "$service_key" == "$COMPOSE_SERVICE" ]]; then
+              continue
+            fi
+
+            port=$(echo "$value" | cut -d':' -f2)
+            PORT_MAPPING[$port]="$service_key"
+        fi
+
+    done < "$input_file"
+  done
+
+
+  if [ ${#PORT_MAPPING[@]} -eq 0 ]; then
+    echo "No port forwarding rules are found."
+    return
+  else
+    for LOCAL_PORT in "${!PORT_MAPPING[@]}"; do
+      REMOTE_SERVICE_NAME=${PORT_MAPPING[$LOCAL_PORT]}
+      echo "Forwarding ${LOCAL_PORT} to ${REMOTE_SERVICE_NAME}:${LOCAL_PORT} ..."
+      socat "TCP-LISTEN:${LOCAL_PORT},fork,reuseaddr" "TCP:${REMOTE_SERVICE_NAME}:${LOCAL_PORT}" >/dev/null 2>&1 &
+    done
+  fi
+}
+
+
 
 ping -c 1 "$RegCenterLocalIp"  # 確認是否連線成功
+
+portForwarding
+if [ "$?" != "0" ]; then
+  echo "Port forwarding error!"
+  exit 1
+fi
+
 
 echo "Running go mod tidy ..."
 go mod tidy -x -v

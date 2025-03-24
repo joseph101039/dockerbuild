@@ -6,12 +6,12 @@ function portForwarding() {
   fi
 
   declare -a input_files
-  # if /go/src/base-cloud/ is a folder
-  if [[ -d "/go/src/base-cloud/" ]]; then
+  # if /go/src/backend/base-cloud/ is a folder
+  if [[ -d "/go/src/backend/base-cloud/" ]]; then
     echo "base-cloud folder is found."
     input_files=(
-      "/go/src/base-cloud/module/.cloud-env"
-      "/go/src/base-cloud/resources/game-grpc.properties"
+      "/go/src/backend/base-cloud/module/.cloud-env"
+      "/go/src/backend/base-cloud/resources/game-grpc.properties"
     )
   elif [[ -d "/go/src/backend/base-game" ]]; then
     echo "base-game folder is found."

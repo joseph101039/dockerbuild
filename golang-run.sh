@@ -38,16 +38,23 @@ function portForwarding() {
         # 如果 key 開頭是 GRPC_
         if [[ "$key" == GRPC_* || "$key" == grpc.* ]]; then
             # 將 key 替換 GRPC_ 為空, 替換 MICRO_ 為空, 替換 _ 為 . , 轉換成全小寫
-            service_key=$(echo "$key" | tr '[:upper:]' '[:lower:]' | sed 's/_/./g'  | sed 's/micro.//g' | sed 's/grpc.//g' | sed 's/\./-/g'  )
+            service_key=$(echo "$key" | \
+             sed 's/CLOUDMICRO/CLOUD_MICRO_/g' | sed 's/grpc.micro/grpc.micro./g' | \
+             tr '[:upper:]' '[:lower:]' | sed 's/_/./g'  | sed 's/micro.//g' | sed 's/grpc.//g' | sed 's/\./-/g'  )
             service_key="${service_key//backend-api/backendapi}"  # 特例處理
 
+            port=$(echo "$value" | cut -d':' -f2)
             # 不能 forward 到自身, 不應佔用 port
             if [[ "$service_key" == "$COMPOSE_SERVICE" ]]; then
+              if [[ "$HEALTHCHECK_FORWARD_PORT" != "" ]]; then
+                # 將 healthcheck 呼叫轉發到自己 grpc port
+                PORT_MAPPING[$HEALTHCHECK_FORWARD_PORT]="${service_key}:${port}"
+              fi
+
               continue
             fi
 
-            port=$(echo "$value" | cut -d':' -f2)
-            PORT_MAPPING[$port]="$service_key"
+            PORT_MAPPING[$port]="${service_key}:${port}"
         fi
 
     done < "$input_file"
@@ -59,9 +66,9 @@ function portForwarding() {
     return
   else
     for LOCAL_PORT in "${!PORT_MAPPING[@]}"; do
-      REMOTE_SERVICE_NAME=${PORT_MAPPING[$LOCAL_PORT]}
-      echo "Forwarding ${LOCAL_PORT} to ${REMOTE_SERVICE_NAME}:${LOCAL_PORT} ..."
-      socat "TCP-LISTEN:${LOCAL_PORT},fork,reuseaddr" "TCP:${REMOTE_SERVICE_NAME}:${LOCAL_PORT}" >/dev/null 2>&1 &
+      REMOTE_SERVICE=${PORT_MAPPING[$LOCAL_PORT]}
+      echo "Forwarding ${LOCAL_PORT} to ${REMOTE_SERVICE} ..."
+      socat "TCP-LISTEN:${LOCAL_PORT},fork,reuseaddr" "TCP:${REMOTE_SERVICE}" >/dev/null 2>&1 &
     done
   fi
 }

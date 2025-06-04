@@ -51,8 +51,8 @@ function portForwarding() {
 
         port=$(echo "$value" | cut -d':' -f2)
 
-        # 不能 forward 到自身, 不應佔用 port
-        if [[ "$service_key" == "$COMPOSE_SERVICE" ]]; then
+        # 不能 forward 到自身, 不應佔用 port (移除 '-' 再比對名稱)
+        if [[ "${service_key//-}" == "${COMPOSE_SERVICE//-}" ]]; then
           if [[ "$HEALTHCHECK_FORWARD_PORT" != "" ]]; then
             # 將 healthcheck 呼叫轉發到自己 grpc port
             PORT_MAPPING[$HEALTHCHECK_FORWARD_PORT]="${service_key}:${port}"

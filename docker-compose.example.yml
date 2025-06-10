@@ -1,0 +1,769 @@
+#version: '3.5'
+# ref: https://myapollo.com.tw/blog/docker-compose-yaml-anchors-and-aliases/
+
+
+#######################
+#   模版
+######################
+x-logging: &logging # yaml anchor
+  driver: json-file
+  options:  # file rotation 節省 disk space
+    max-size: 200k
+    max-file: 10
+    compress: "false"
+
+x-restart-policy: &deploy-restart-policy
+  restart_policy:
+    condition: none
+    #condition: on-failure
+    #max_attempts: 1
+    #delay: 5s
+    #window: 120s
+
+x-resource-limit: &deploy-resource-limit
+  resources:
+    limits:
+      cpus: '5'
+
+x-golang-basic: &golang-basic
+  image: joseph50804/golang-basic:latest
+  platform: linux/arm64
+  env_file:    # 環境變數檔案
+    - dockerbuild/env/beego.env
+  networks:
+    - net
+  logging:
+    <<: *logging
+
+
+x-cloud-golang-basic: &cloud-golang-basic
+  <<: *golang-basic
+  volumes:
+    - ./cloud-project/:/go/src/
+    - ./dockerbuild:/go/src/dockerbuild
+    - $GOPATH/pkg/mod:/go/pkg/mod
+    - /go/bin/
+  deploy:
+    <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+  profiles: [ "cloud" ]
+
+x-game-golang-basic: &game-golang-basic
+  <<: *golang-basic
+  volumes:
+    - ./game-project/:/go/src/
+    - ./dockerbuild:/go/src/dockerbuild
+    - $GOPATH/pkg/mod:/go/pkg/mod
+    - /go/bin/
+  deploy:
+    <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+  profiles: [ "game" ]
+
+x-data-center-golang-basic: &data-center-golang-basic
+  <<: *golang-basic
+  volumes:
+    - ./data-center/:/go/src/data-center
+    - ./exLib/:/go/src/exLib
+    - ./dockerbuild:/go/src/dockerbuild
+    - $GOPATH/pkg/mod:/go/pkg/mod
+    - /go/bin/
+  deploy:
+    <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+  profiles: [ "cloud" ]
+
+
+x-grpc-healthcheck-80: &grpc-healthcheck-80
+  healthcheck:
+    test: [ "CMD", "grpc-health-probe", "-addr=:80" ]
+    interval: 5s
+    timeout: 1s
+    retries: 40
+
+x-grpc-healthcheck-8080: &grpc-healthcheck-8080
+  healthcheck:
+    test: [ "CMD", "grpc-health-probe", "-addr=:8080" ]
+    interval: 5s
+    timeout: 1s
+    retries: 40
+
+x-grpc-healthcheck-8081: &grpc-healthcheck-8081
+  healthcheck:
+    test: [ "CMD", "grpc-health-probe", "-addr=:8081" ]
+    interval: 5s
+    timeout: 1s
+    retries: 40
+
+services:
+  #######################
+  #   聊天室
+  ######################
+  # 代理 grpc server 路徑, 符合 DNS 檢查
+  # 1. tgg-project/frontend/backoffice/resources/grpc.properties
+#  grpc-proxy:   # 檢查網路設定以 grpc-health-probe -addr=grpc-proxy:xxx
+#    container_name: grpc-proxy
+#    platform: linux/arm64
+#    image: nginx
+#    volumes:
+#      # 添加啟動腳本
+#      - ./dockerbuild/nginx/grpc-to-env-v2.sh:/root/startup/grpc-to-env-v2.sh:ro
+#      - ./dockerbuild/nginx/grpc-to-nginx-conf.sh:/root/startup/grpc-to-nginx-conf.sh:ro
+#      - ./dockerbuild/nginx/nginx.grpc.conf.template:/root/startup/nginx.grpc.conf.template:ro
+#      # 掛載所有來源 grpc server properties
+#      - ./cloud-project/base-cloud/module/.cloud-env:/root/startup/cloud-project/base-cloud/module/.cloud-env
+#      - ./game-project/backend/base-game/module/.game-env:/root/startup/game-project/backend/base-game/module/.game-env
+##     # - ./cloud-project/base-cloud/resources/cloud-grpc.properties:/root/startup/cloud-project/base-cloud/resources/cloud-grpc.properties:ro
+##     # - ./cloud-project/base-cloud/resources/game-grpc.properties:/root/startup/cloud-project/base-cloud/resources/game-grpc.properties:ro
+##     # - ./game-project/backend/base-game/resources/cloud-grpc.properties:/root/startup/game-project/backend/base-game/resources/cloud-grpc.properties:ro
+##     # - ./game-project/backend/base-game/resources/game-grpc.properties:/root/startup/game-project/backend/base-game/resources/game-grpc.properties:ro
+##     # - ./game-project/frontend/game-website/resources/grpc.properties:/root/startup/game-project/frontend/game-website/resources/grpc.properties:ro
+#      # 掛載要寫入的 GRPC host env
+#      - ./dockerbuild/env/grpc-server.env:/root/startup/grpc-server.env
+#      # 添加所有 grpc server 到 nginx 設定
+#      - ./dockerbuild/nginx/grpc-proxy-confd/:/etc/nginx/conf.d/
+#    logging:
+#      <<: *logging
+#    profiles: ["cloud" , "game", "cloud-manager"]
+#    networks:
+#      - net  # 透過內網連線
+#    working_dir: /root/startup/
+#    # 產生 nginx 設定檔後啟動
+#    # grpc-to-env.sh 產出 微服務所需的 grpc 網址變數, grpc-to-nginx-conf.sh 產出 nginx 代理 grpc server 設定檔
+#    command: >
+#      bash -c "
+#      bash grpc-to-env-v2.sh &&
+#      bash grpc-to-nginx-conf.sh &&
+#      nginx -g 'daemon off;'"
+
+  data-center:
+    <<: *data-center-golang-basic
+    container_name: data-center
+    working_dir: /go/src/data-center # 編譯路徑    profiles: [ "cloud" ]
+    ports:
+      - '20013:80'
+    environment:
+      # 指定 beego 讀取 conf/dev.app.conf
+      - BEEGO_RUNMODE=dev
+
+
+  cloud2:
+    <<: *cloud-golang-basic
+    container_name: cloud2
+    working_dir: /go/src/frontend/Cloud  # 編譯路徑
+    ports:
+      - '20012:8082'
+    environment:
+      - COMPOSE_SERVICE=cloud2   # 同 serivce name
+      - AdminCloseRunShell=true # 先关闭排程
+      - SYS_KAFKA_URI=
+    depends_on:
+      - cloud2-proxy
+
+  cloud-gateway:
+    <<: *cloud-golang-basic
+    working_dir: /go/src/frontend/cloud-gateway
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+      mode: replicated
+      replicas: 2    # todo change replica
+      #replicas: 1    # todo change replica
+      endpoint_mode: dnsrr   # round-robin
+      restart_policy:
+        condition: on-failure
+        max_attempts: 1
+        delay: 3s
+    environment:
+      - COMPOSE_SERVICE=cloud-gateway
+    ports:
+      #- '49000:80'       # 1 replicas
+      - '49000-49001:80'   # 2 replicas
+
+
+
+  cloud-chatroom:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-chatroom
+    working_dir: /go/src/backend/cloud-micro-chatroom
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - FC_CHATROOM_API_URL=http://fruit_dev.transflow.ai:8069
+      - COMPOSE_SERVICE=cloud-chatroom
+
+
+#  cloudcronshell:
+#    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+#    container_name: CloudCronShell
+#    working_dir: /go/src/backend/CloudCronShell
+#    environment:
+#      - FC_CHATROOM_API_URL=http://fruit_dev.transflow.ai:8069
+#      - COMPOSE_SERVICE=CloudCronShell
+
+  cloud-sports:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-sports
+    working_dir: /go/src/backend/cloud-micro-sports
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-sports
+
+  # todo 停用排程
+#  cloud-spider-sports:
+#    <<: [*cloud-golang-basic]
+#    container_name: cloud-spider-sports
+#    working_dir: /go/src/backend/cloud-spider-sports
+#    deploy:
+#      <<: [*deploy-restart-policy, *deploy-resource-limit]
+#
+
+ # todo 更換 專案路徑
+  cloud-anchor:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-anchor
+    working_dir: /go/src/backend/cloud-micro-anchor
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-anchor
+
+  api-consumer:
+    <<: [*cloud-golang-basic]
+    container_name: api-consumer
+    working_dir: /go/src/backend/micro-api-consumer
+    environment:
+      - COMPOSE_SERVICE=micro-api-consumer
+
+
+
+  cloud-live-statistics:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-live-statistics
+    working_dir: /go/src/backend/cloud-micro-live-statistics
+    restart: no
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-live-statistics
+
+
+
+  cloud-app-monitor:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-app-monitor
+    working_dir: /go/src/backend/cloud-app-monitor
+    restart: no
+    profiles: [ "monitor" ] # 平時不應該被啟動, 避免搶線上資源
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-app-monitor
+    ports:
+      - '8807:81'
+
+
+# TODO remove deprecated project ...
+#  cloud-sports-api:
+#    <<: [*cloud-golang-basic]
+#    container_name: cloud-micro-sports-api
+#    working_dir: /go/src/backend/cloud-micro-sports-api
+#    deploy:
+#      <<: [*deploy-restart-policy, *deploy-resource-limit]
+#    profiles: [ "cloud" ]
+#    ports:
+#      - '55015:80'
+
+  ########## Cloud ##########
+
+
+  cloud-gameapi:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-gameapi
+    working_dir: /go/src/backend/cloud-micro-gameapi
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-gameapi
+    ports:
+      - '30809:80'
+
+  cloud-payment:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-payment
+    working_dir: /go/src/backend/cloud-micro-payment
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-payment
+
+  cloud-withdraw:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-withdraw
+    working_dir: /go/src/backend/cloud-micro-withdraw
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-withdraw
+
+  cloud-domain:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-domain
+    working_dir: /go/src/backend/cloud-micro-domain
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-domain
+
+#  cloud-payment-callback:
+#    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+#    container_name: cloud-payment-callback
+#    working_dir: /go/src/backend/cloud-payment-callbackgate
+#    deploy:
+#
+#    ports:
+#      - '30809:80'
+
+  # 後端 Netcash HTTP Server
+  netcash:
+    <<: *cloud-golang-basic
+    container_name: cloud-netcash
+    working_dir: /go/src/frontend/cloud-netcash
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=netcash
+    ports:
+      - '20014:80'
+
+
+  cloud-netcash:
+    <<: [*cloud-golang-basic]
+    container_name: cloud-micro-netcash
+    working_dir: /go/src/backend/cloud-micro-netcash
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-netcash
+
+
+
+  cloud-game:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-game
+    working_dir: /go/src/backend/cloud-micro-game
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-game
+
+
+
+  cloud-player:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-player
+    working_dir: /go/src/backend/cloud-micro-player
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-player
+
+
+  cloud-data-analysis:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-data-analysis
+    working_dir: /go/src/backend/cloud-micro-data-analysis
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-data-analysis
+
+  cloud-login:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-login
+    working_dir: /go/src/backend/cloud-micro-login
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-login
+
+  cloud-download:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-download
+    working_dir: /go/src/backend/cloud-micro-download
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-download
+
+
+  cloud-agent:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-agent
+    working_dir: /go/src/backend/cloud-micro-agent
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-agent
+
+
+  cloud-package-channel:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-package-channel
+    working_dir: /go/src/backend/cloud-micro-package-channel
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-package-channel
+
+  cloud-live-activity:
+    <<: [*cloud-golang-basic, *grpc-healthcheck-80]
+    container_name: cloud-micro-live-activity
+    working_dir: /go/src/backend/cloud-micro-live-activity
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=80
+      - COMPOSE_SERVICE=cloud-live-activity
+
+
+
+    # 測試模式
+  #  cloud-gateway-test:
+  #    <<: *cloud-golang-basic
+  #    container_name: cloud-gateway-test
+  #    working_dir: /go/src/cloud-gateway
+  #    deploy:
+  #      <<: [*deploy-restart-policy, *deploy-resource-limit]
+  #    # start debug mode waiting for connection
+  #    command: >
+  #      bash -c 'go build -tags musl -gcflags="all=-N -l" -o cloud-gateway-test .
+  #      && go install -v github.com/go-delve/delve/cmd/dlv@latest
+  #      && dlv --listen=":81" --headless=true --accept-multiclient --api-version=2 --log exec "./cloud-gateway-test -test -mode=0"
+  #      '
+  #
+  #    environment:
+  #      - DEBUG_PORT=81
+  #    ports:
+  #      - '49999:81'
+
+
+
+
+  ##################
+  #   直播後臺
+  ##################
+  sports-cms:
+    <<: *cloud-golang-basic
+    container_name: micro-sports-cms
+    working_dir: /go/src/frontend/micro-sports-cms
+    environment:
+      - COMPOSE_SERVICE=sports-cms
+      - CLOUD_SERVICE_HOST=http://host.docker.internal:20012
+    ports:
+      - '60040:80'
+
+  ########## Game Project ##########
+  game-website:
+    <<: *game-golang-basic
+    container_name: game-website
+    working_dir: /go/src/frontend/game-website
+    environment:
+      - COMPOSE_SERVICE=game-website
+    ports:
+      - '20008:80'  # swagger: http://127.0.0.1:20008/_sys/api
+
+  ########## API Server Proxy #############
+
+#  game-website-proxy:
+#    <<: *golang-basic
+#    container_name: game-website-proxy
+#    working_dir: /go/src/game-website-proxy
+#    environment:
+#      # 呼叫 localhost:20007/local 會轉發到 game-website:80
+#      SERVER_MAP: '{"local":"http://game-website:80","dev":"https://gate.ljbdev.site"}'
+#    volumes:
+#      - ./game-website-proxy/:/go/src/game-website-proxy/
+#      - ./game-project/frontend/game-website/:/go/src/game-project/frontend/game-website/
+#      - ./game-project/backend:/go/src/game-project/backend/
+#      - ./dockerbuild:/go/src/dockerbuild
+#      - $GOPATH/pkg/mod:/go/pkg/mod
+#      - /go/bin/
+#    deploy:
+#      restart_policy:
+#        condition: always
+#    ports:
+#      - '20007:8080'
+
+
+
+    # 2. 研發服使用 http://localhost:8080
+    # 3.本地參考 src/conf.ts, 修改 gameURL 連到 gate-proxy, exConf.gameURL = 'http://localhost:20009'
+    #   3-1 chrome 關閉 CORS 檢查 chrome://flags/#block-insecure-private-network-requests 關閉 CORS
+    #   3-2 請使用 以下網址加上參數 &channelId=xxxxx
+    # http://localhost:8080/?env=0&gatewayConfig=ws://localhost:49000&gameURL=http://localhost:20009&agentID=73&channelId=dev630258_2#/index
+    # 73: dev131231_41    375: dev630258_9
+  #  提供 app 連接
+  # 代理 /game 路徑 到 gate http
+  # 代理 /sport 路徑 到研發服
+  gate-proxy:
+    container_name: gate-proxy
+    platform: linux/arm64
+    image: nginx
+    volumes:
+      - ./dockerbuild/nginx/nginx.gate.conf:/etc/nginx/conf.d/default.conf
+    environment:
+      - PROXY_DOMAIN=gate:80 # 代理本地 gateway, 請替換網址
+    logging:
+      <<: *logging
+    ports:
+      - 20009:80
+    networks:
+      - net  # 透過內網連線 gate
+
+  cloud2-proxy:
+    container_name: cloud2-proxy
+    platform: linux/arm64
+    image: nginx
+    volumes:
+      - ./dockerbuild/nginx/nginx.cloud2.conf:/etc/nginx/conf.d/default.conf
+    logging:
+      <<: *logging
+    ports:
+      - 20011:80
+    networks:
+      - net  # 透過內網連線 gate
+
+  # 代理 micro-sports-cms
+  sports-cms-proxy:
+    container_name: sports-cms-proxy
+    platform: linux/arm64
+    image: nginx
+    volumes:
+      - ./dockerbuild/nginx/nginx.sports-cms.conf:/etc/nginx/conf.d/default.conf
+    environment:
+      - PROXY_DOMAIN=micro-sports-cms:80 # 代理本地 gateway, 請替換網址
+    logging:
+      <<: *logging
+    ports:
+      - 60041:80
+    networks:
+      - net  # 透過內網連線 gate
+
+
+  ########## Game ##########
+
+  gate:
+    <<: *game-golang-basic
+    container_name: gate
+    working_dir: /go/src/frontend/gate
+    ports:
+      - '20010:80'  # sys.grpc.listen=8080, 所有 game 專案 nacos Service 設定的 port 改 8080
+    depends_on:
+      - gate-proxy
+    environment:
+      - COMPOSE_SERVICE=gate
+
+  live:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-live
+    working_dir: /go/src/backend/micro-live
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=live
+
+  convert:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-convert
+    working_dir: /go/src/backend/micro-convert
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=convert
+
+#  gamedata:
+#    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+#    container_name: micro-gamedata
+#    working_dir: /go/src/frontend/micro-gamedata
+#    environment:
+#      - COMPOSE_SERVICE=gamedata
+
+  gamesdk:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-gamesdk
+    working_dir: /go/src/frontend/micro-gamesdk
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=gamesdk
+
+  log:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-log
+    working_dir: /go/src/backend/micro-log
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=log
+
+
+  config:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-config
+    working_dir: /go/src/backend/micro-config
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=config
+
+
+  websocket:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-websocket
+    working_dir: /go/src/backend/micro-websocket
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - COMPOSE_SERVICE=websocket
+
+
+  chatroom:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-chatroom
+    working_dir: /go/src/backend/micro-chatroom
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=chatroom
+
+
+
+  # [遊戲] 支付
+  payment:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-payment
+    working_dir: /go/src/backend/micro-payment
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=payment
+
+
+  drawwater:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-drawwater
+    working_dir: /go/src/backend/micro-drawwater
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=drawwater
+    #environment:
+    #- SYS_KAFKA_URI=
+
+
+
+  backendapi:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8081 ]
+    container_name: micro-backendapi
+    working_dir: /go/src/backend/micro-backendapi
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8081
+      - COMPOSE_SERVICE=backendapi
+    ports:
+      - 20111:8080
+
+
+  sync:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-sync
+    working_dir: /go/src/backend/micro-sync
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=sync
+
+  live-activity:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-live-activity
+    working_dir: /go/src/backend/micro-live-activity
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=live-activity
+
+  login:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-login
+    working_dir: /go/src/backend/micro-login
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=login
+
+  rebate:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-rebate
+    working_dir: /go/src/backend/micro-rebate
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=rebate
+
+  wallet:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-wallet
+    working_dir: /go/src/backend/micro-wallet
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=wallet
+
+  user:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-user
+    working_dir: /go/src/backend/micro-usercenter
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=user
+
+  event:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-event
+    working_dir: /go/src/backend/micro-event
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=event
+
+  notice:
+    <<: [ *game-golang-basic, *grpc-healthcheck-8080 ]
+    container_name: micro-notice
+    working_dir: /go/src/backend/micro-notice
+    deploy:
+      <<: [ *deploy-restart-policy, *deploy-resource-limit ]
+    environment:
+      - HEALTHCHECK_FORWARD_PORT=8080
+      - COMPOSE_SERVICE=notice
+
+
+  # [雲管理]  #################
+  cloud-manager:
+    <<: *cloud-golang-basic
+    container_name: cloud-manager
+    working_dir: /go/src/frontend/CloudManager
+    profiles: [ "cloud-manager" ]
+    ports:
+      - '20003:80'
+
+  cloud-manager-game:
+    <<: *cloud-golang-basic
+    container_name: cloud-manager-micro-game
+    working_dir: /go/src/backend/cloud-manager-micro-game
+    profiles: [ "cloud-manager" ]
+
+#  # 測試工具
+#  gateway-tool-ui:
+#    container_name: gateway-tool-ui
+#    build:
+#      context: cloud/gateway-tool-ui
+#      dockerfile: Dockerfile
+#    platform: linux/arm64
+#    restart: no
+#    ports:
+#    networks:
+#      - net
+#    profiles: [ "test"]
+
+networks:
+  net:
+    name: net
+    driver: bridge
+    external: true

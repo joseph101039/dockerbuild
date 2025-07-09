@@ -9,7 +9,7 @@ tmp_dir = "/tmp"
 ## Array of commands to run before each build
 #pre_cmd = ["echo 'hello air' > pre_cmd.txt"]
 # Just plain old shell command. You could use `make` as well.
-cmd = "go build -o /tmp/main ."
+cmd = "go mod tidy && go build -o /tmp/main ."
 ## Array of commands to run after ^C
 #post_cmd = ["echo 'hello air' > post_cmd.txt"]
 ## Binary file yields from `cmd`.
@@ -29,7 +29,7 @@ include_file = []
 # Exclude files.
 exclude_file = []
 # Exclude specific regular expressions.
-exclude_regex = ["_test\\.go"]
+#exclude_regex = ["_test\\.go"]
 # Exclude unchanged files.
 exclude_unchanged = true
 # Follow symlink for directories
@@ -68,9 +68,9 @@ watcher = "cyan"
 build = "yellow"
 runner = "green"
 
-[misc]
-# Delete tmp directory on exit
-clean_on_exit = true
+#[misc]
+# #Delete tmp directory on exit
+#clean_on_exit = true
 
 [screen]
 clear_on_rebuild = true
@@ -78,6 +78,6 @@ keep_scroll = true
 
 [proxy]
 # Enable live-reloading on the browser.
-enabled = true
-proxy_port = 8090
-app_port = 8080
+#enabled = true
+#proxy_port = 8090
+#app_port = 8080

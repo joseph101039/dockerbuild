@@ -1,4 +1,4 @@
-export LATEST_VERSION=1.4
+export LATEST_VERSION=1.4.1
 
 docker-build:
 	docker build -f golang.dockerfile \
